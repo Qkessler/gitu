@@ -1,5 +1,5 @@
 use super::{
-    checkout, commit, create_prompt_with_default, latest_local_branch, selected_rev, Action,
+    checkout, commit, create_prompt_with_default, latest_local_branch, push, selected_rev, Action,
     OpTrait,
 };
 use crate::{git, items::TargetData, menu::arg::Arg, state::State, term::Term, Res};
@@ -121,10 +121,10 @@ impl MergeAction {
     ///
     /// Ref: <https://github.com/magit/magit/blob/main/lisp/magit-merge.el#L131>
     fn dissolve(state: &mut State, term: &mut Term, destination_branch: &str) -> Res<()> {
-        let current_branch = git::get_head(&state.repo);
-
+        let upstream = git::upstream_branch_name(&state.repo)?;
+        push::set_upstream_and_push(state, term, &upstream)?;
         checkout::checkout(state, term, destination_branch)?;
-        match current_branch {
+        match git::get_head(&state.repo) {
             Ok(ref name) => MergeAction::absorb(state, term, name),
             // Head is not a branch
             Err(_) => MergeAction::edit(

@@ -81,7 +81,11 @@ impl OpTrait for PushToUpstream {
     }
 }
 
-fn set_upstream_and_push(state: &mut State, term: &mut Term, upstream_name: &str) -> Res<()> {
+pub(crate) fn set_upstream_and_push(
+    state: &mut State,
+    term: &mut Term,
+    upstream_name: &str,
+) -> Res<()> {
     let mut cmd = Command::new("git");
     cmd.args(["branch", "--set-upstream-to", upstream_name]);
     state.run_cmd(term, &[], cmd)?;
