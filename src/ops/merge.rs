@@ -1,7 +1,8 @@
 use super::{
-    commit, create_prompt_with_default, latest_local_branch, selected_rev, Action, OpTrait,
+    checkout, commit, create_prompt_with_default, latest_local_branch, selected_rev, Action,
+    OpTrait,
 };
-use crate::{items::TargetData, menu::arg::Arg, state::State, term::Term, Res};
+use crate::{git, items::TargetData, menu::arg::Arg, state::State, term::Term, Res};
 use std::{convert::Infallible, fmt::Display, process::Command, rc::Rc, str::FromStr};
 
 // key for merge and rebase: "-s"
@@ -57,7 +58,7 @@ pub(crate) enum MergeAction {
     Edit,
     NoCommit,
     Absorb,
-    // FIXME: Implement Preview `MergeAction`,
+    // FIXME: Implement Preview.
     Squash,
     Dissolve,
 }
@@ -110,6 +111,29 @@ impl MergeAction {
         state.close_menu();
         state.run_cmd_async(term, &[], cmd)
     }
+
+    /// Merge the current branch into another and remove the former.
+    ///
+    /// Before merging, force push the source branch to its push-remote,
+    /// provided the respective remote branch already exists, ensuring
+    /// that the respective pull-request (if any) won't get stuck on some
+    /// obsolete version of the commits that are being merged.
+    ///
+    /// Ref: <https://github.com/magit/magit/blob/main/lisp/magit-merge.el#L131>
+    fn dissolve(state: &mut State, term: &mut Term, destination_branch: &str) -> Res<()> {
+        let current_branch = git::get_head(&state.repo);
+
+        checkout::checkout(state, term, destination_branch)?;
+        match current_branch {
+            Ok(ref name) => MergeAction::absorb(state, term, name),
+            // Head is not a branch
+            Err(_) => MergeAction::edit(
+                state,
+                term,
+                &selected_rev(state).ok_or("Revision must be selected")?,
+            ),
+        }
+    }
 }
 
 impl Display for MergeAction {
@@ -119,7 +143,6 @@ impl Display for MergeAction {
             MergeAction::Edit => "Merge and edit message",
             MergeAction::NoCommit => "Merge but don't commit",
             MergeAction::Absorb => "Absorb",
-            // MergeAction::Preview => "Preview merge",
             MergeAction::Squash => "Squash merge",
             MergeAction::Dissolve => "Dissolve",
         })
@@ -155,7 +178,16 @@ impl OpTrait for MergeAction {
             MergeAction::Squash => {
                 create_prompt_with_default("Squash", MergeAction::squash, selected_rev, true)
             }
-            MergeAction::Dissolve => todo!(),
+            MergeAction::Dissolve => create_prompt_with_default(
+                // FIXME: We _should_ include the current branch
+                // into the prompt. Today, we don't have that information
+                // on `State`, nor we have access to the `State` on this
+                // function.
+                "Merge current branch into",
+                MergeAction::dissolve,
+                latest_local_branch,
+                true,
+            ),
         };
 
         Some(action)

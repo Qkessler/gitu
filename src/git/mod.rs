@@ -198,3 +198,13 @@ pub(crate) fn get_head(repo: &git2::Repository) -> Res<String> {
         Err("Head is not a branch".into())
     }
 }
+
+pub(crate) fn upstream_branch_name(repo: &git2::Repository) -> Res<String> {
+    let head = get_head(repo)?;
+    let upstream = repo
+        .branch_upstream_name(&head)?
+        .as_str()
+        .map(str::to_string)
+        .ok_or("Branch is not valid UTF8")?;
+    Ok(upstream)
+}

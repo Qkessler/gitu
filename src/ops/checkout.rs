@@ -23,7 +23,7 @@ impl OpTrait for Checkout {
     }
 }
 
-fn checkout(state: &mut State, term: &mut Term, rev: &str) -> Res<()> {
+pub(crate) fn checkout(state: &mut State, term: &mut Term, rev: &str) -> Res<()> {
     let mut cmd = Command::new("git");
     cmd.args(["checkout"]);
     cmd.args(state.pending_menu.as_ref().unwrap().args());

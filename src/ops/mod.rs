@@ -90,6 +90,7 @@ pub(crate) enum Op {
     MergeNoCommit,
     MergeAbsorb,
     MergeSquash,
+    MergeDissolve,
 
     Stage,
     Unstage,
@@ -181,6 +182,7 @@ impl Op {
             Op::MergeNoCommit => Box::new(merge::MergeAction::NoCommit),
             Op::MergeAbsorb => Box::new(merge::MergeAction::Absorb),
             Op::MergeSquash => Box::new(merge::MergeAction::Squash),
+            Op::MergeDissolve => Box::new(merge::MergeAction::Dissolve),
         }
     }
 }

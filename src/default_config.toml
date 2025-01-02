@@ -168,6 +168,7 @@ merge_menu.merge_no_commit = ["n"]
 merge_menu.merge_plain = ["m"]
 merge_menu.merge_edit = ["e"]
 merge_menu.merge_squash = ["s"]
+merge_menu.merge_dissolve = ["i"]
 merge_menu.quit = ["q", "<esc>"]
 
 root.reset_menu = ["X"]
