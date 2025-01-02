@@ -1,5 +1,5 @@
 use super::{Action, OpTrait};
-use crate::{items::TargetData, menu::arg::Arg, state::State, term::Term};
+use crate::{items::TargetData, menu::arg::Arg, state::State, term::Term, Res};
 use std::{
     ffi::{OsStr, OsString},
     process::Command,
@@ -24,17 +24,22 @@ pub(crate) fn init_args() -> Vec<Arg> {
 }
 
 pub(crate) struct Commit;
+
+impl Commit {
+    pub(crate) fn commit(state: &mut State, term: &mut Term) -> Res<()> {
+        let mut cmd = Command::new("git");
+        cmd.args(["commit"]);
+        cmd.args(state.pending_menu.as_ref().unwrap().args());
+
+        state.close_menu();
+        state.run_cmd_interactive(term, cmd)?;
+        Ok(())
+    }
+}
+
 impl OpTrait for Commit {
     fn get_action(&self, _target: Option<&TargetData>) -> Option<Action> {
-        Some(Rc::new(|state: &mut State, term: &mut Term| {
-            let mut cmd = Command::new("git");
-            cmd.args(["commit"]);
-            cmd.args(state.pending_menu.as_ref().unwrap().args());
-
-            state.close_menu();
-            state.run_cmd_interactive(term, cmd)?;
-            Ok(())
-        }))
+        Some(Rc::new(Commit::commit))
     }
 
     fn display(&self, _state: &State) -> String {
