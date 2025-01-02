@@ -35,6 +35,8 @@ pub(crate) enum Menu {
     Revert,
     #[serde(rename = "stash_menu")]
     Stash,
+    #[serde(rename = "merge_menu")]
+    Merge,
 }
 
 pub(crate) struct PendingMenu {
@@ -61,6 +63,7 @@ impl PendingMenu {
                 Menu::Reset => ops::reset::init_args(),
                 Menu::Revert => ops::revert::init_args(),
                 Menu::Stash => ops::stash::init_args(),
+                Menu::Merge => ops::merge::init_args(),
             }
             .into_iter()
             .map(|arg| (Cow::from(arg.arg), arg))

@@ -14,6 +14,7 @@ pub(crate) mod discard;
 pub(crate) mod editor;
 pub(crate) mod fetch;
 pub(crate) mod log;
+pub(crate) mod merge;
 pub(crate) mod pull;
 pub(crate) mod push;
 pub(crate) mod rebase;
@@ -79,6 +80,16 @@ pub(crate) enum Op {
     RevertAbort,
     RevertContinue,
     RevertCommit,
+
+    // NICE: A custom deserializer for `Merge` so they all
+    // become `merge_` and each of the `Deserialize` implementations
+    // of the actions `merge::MergeAction`.
+    // Merge(merge::MergeAction),
+    MergePlain,
+    MergeEdit,
+    MergeNoCommit,
+    MergeAbsorb,
+    MergeSquash,
 
     Stage,
     Unstage,
@@ -165,6 +176,11 @@ impl Op {
             Op::Stage => Box::new(stage::Stage),
             Op::Unstage => Box::new(unstage::Unstage),
             Op::CopyHash => Box::new(copy_hash::CopyHash),
+            Op::MergePlain => Box::new(merge::MergeAction::Plain),
+            Op::MergeEdit => Box::new(merge::MergeAction::Edit),
+            Op::MergeNoCommit => Box::new(merge::MergeAction::NoCommit),
+            Op::MergeAbsorb => Box::new(merge::MergeAction::Absorb),
+            Op::MergeSquash => Box::new(merge::MergeAction::Squash),
         }
     }
 }
@@ -184,6 +200,7 @@ impl Display for Menu {
             Menu::Reset => "Reset",
             Menu::Revert => "Revert",
             Menu::Stash => "Stash",
+            Menu::Merge => "Merge",
         })
     }
 }
@@ -295,4 +312,29 @@ pub(crate) fn selected_rev(state: &State) -> Option<String> {
         Some(TargetData::Commit(commit)) => Some(commit.to_owned()),
         _ => None,
     }
+}
+
+/// Pulls the latest local branch out of the current repository
+///
+/// The `repo` is saved on the [State], so this function can just pull
+/// it from there. The `git2` API is not particularly ergonomic,
+/// so the tradeoff between using or not using `unwrap` is whether we are
+/// OK with a long footprint.
+///
+/// Note: We are NOT pulling remote branches. We are interested in local
+/// branches.
+pub(crate) fn latest_local_branch(state: &State) -> Option<String> {
+    for (branch, _) in state
+        .repo
+        .branches(Some(git2::BranchType::Local))
+        .ok()?
+        .flatten()
+    {
+        let name = branch
+            .name()
+            .expect("name of filtered branch should be present")?;
+        return Some(name.to_string());
+    }
+
+    None
 }
